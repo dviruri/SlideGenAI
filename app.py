@@ -21,6 +21,9 @@ GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "")
 GROQ_ENDPOINT = "https://api.groq.com/openai/v1"
 MODEL = "llama-3.3-70b-versatile"
 
+# HF Spaces injects secrets as env vars — load_dotenv() is a no-op there
+# but reads .env locally
+
 SYSTEM_PROMPT = """You are a professional presentation designer. Given a topic, return ONLY a valid JSON object (no markdown, no code fences) with this structure:
 
 {
