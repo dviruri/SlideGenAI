@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SlideGen AI</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #0f172a;
+      color: #f8fafc;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem 1rem;
+    }
+
+    .logo {
+      text-align: center;
+      margin-bottom: 2.5rem;
+    }
+    .logo h1 {
+      font-size: 2.6rem;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      background: linear-gradient(135deg, #60a5fa 0%, #a78bfa 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .logo p {
+      margin-top: 0.4rem;
+      color: #94a3b8;
+      font-size: 1rem;
+    }
+
+    .card {
+      width: 100%;
+      max-width: 600px;
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 18px;
+      padding: 2rem;
+    }
+
+    .input-row {
+      display: flex;
+      gap: 0.75rem;
+    }
+
+    input[type="text"] {
+      flex: 1;
+      padding: 0.85rem 1rem;
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 10px;
+      color: #f8fafc;
+      font-size: 1rem;
+      outline: none;
+      transition: border-color 0.18s;
+    }
+    input[type="text"]:focus { border-color: #60a5fa; }
+    input[type="text"]::placeholder { color: #475569; }
+
+    button#btn {
+      padding: 0.85rem 1.4rem;
+      background: linear-gradient(135deg, #3b82f6, #7c3aed);
+      border: none;
+      border-radius: 10px;
+      color: #fff;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: opacity 0.18s, transform 0.12s;
+    }
+    button#btn:hover:not(:disabled) { opacity: 0.88; transform: translateY(-1px); }
+    button#btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+
+    .status {
+      margin-top: 1.5rem;
+      min-height: 72px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.6rem;
+      text-align: center;
+    }
+
+    .spinner {
+      width: 32px;
+      height: 32px;
+      border: 3px solid #334155;
+      border-top-color: #60a5fa;
+      border-radius: 50%;
+      animation: spin 0.75s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .status-label { color: #94a3b8; font-size: 0.9rem; }
+    .status-hint  { color: #475569; font-size: 0.78rem; }
+    .success-msg  { color: #4ade80; font-weight: 600; font-size: 1rem; }
+    .error-msg    { color: #f87171; font-size: 0.9rem; }
+
+    .examples {
+      margin-top: 1.5rem;
+      color: #475569;
+      font-size: 0.78rem;
+      text-align: center;
+      line-height: 1.8;
+    }
+    .examples strong { color: #64748b; }
+    .chip {
+      display: inline-block;
+      margin: 0.2rem 0.25rem;
+      padding: 0.2rem 0.6rem;
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 99px;
+      color: #93c5fd;
+      cursor: pointer;
+      font-size: 0.78rem;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .chip:hover { background: #263348; border-color: #60a5fa; }
+
+    footer {
+      margin-top: 2rem;
+      color: #334155;
+      font-size: 0.72rem;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="logo">
+    <h1>SlideGen AI</h1>
+    <p>Type a topic — get a polished PowerPoint in seconds</p>
+  </div>
+
+  <div class="card">
+    <div class="input-row">
+      <input id="subject" type="text" placeholder="e.g. The Future of Artificial Intelligence" />
+      <button id="btn" onclick="generate()">Generate</button>
+    </div>
+
+    <div class="status" id="status"></div>
+  </div>
+
+  <div class="examples">
+    <strong>Try:</strong><br>
+    <span class="chip" onclick="use(this)">Machine Learning</span>
+    <span class="chip" onclick="use(this)">Climate Change</span>
+    <span class="chip" onclick="use(this)">Ancient Rome</span>
+    <span class="chip" onclick="use(this)">Quantum Computing</span>
+    <span class="chip" onclick="use(this)">The Human Brain</span>
+    <span class="chip" onclick="use(this)">Startup Fundraising</span>
+  </div>
+
+  <footer>Powered by Groq (Llama 3.3 70B) · python-pptx</footer>
+
+  <script>
+    const input = document.getElementById("subject");
+    const btn   = document.getElementById("btn");
+    const statusEl = document.getElementById("status");
+
+    input.addEventListener("keydown", e => { if (e.key === "Enter") generate(); });
+
+    function use(el) { input.value = el.textContent; input.focus(); }
+
+    function setStatus(html) { statusEl.innerHTML = html; }
+
+    async function generate() {
+      const subject = input.value.trim();
+      if (!subject) {
+        setStatus('<div class="error-msg">Please enter a topic first.</div>');
+        return;
+      }
+
+      btn.disabled = true;
+      setStatus(`
+        <div class="spinner"></div>
+        <div class="status-label">Asking Claude to design your slides…</div>
+        <div class="status-hint">This usually takes 20–40 seconds</div>
+      `);
+
+      try {
+        const resp = await fetch("/api/generate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ subject }),
+        });
+
+        if (!resp.ok) {
+          let detail = "Generation failed";
+          try { detail = (await resp.json()).detail; } catch {}
+          throw new Error(detail);
+        }
+
+        // Extract filename from Content-Disposition header
+        const cd = resp.headers.get("Content-Disposition") || "";
+        const match = cd.match(/filename[^;=\n]*=(?:(['"])(.+?)\1|([^;\n]*))/);
+        const filename = (match && (match[2] || match[3])) || "presentation.pptx";
+
+        const blob = await resp.blob();
+        const url  = URL.createObjectURL(blob);
+        const a    = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+
+        setStatus(`
+          <div style="font-size:1.8rem">✅</div>
+          <div class="success-msg">"${filename}" downloaded!</div>
+          <div class="status-hint">Check your Downloads folder</div>
+        `);
+      } catch (err) {
+        setStatus(`<div class="error-msg">❌ ${err.message}</div>`);
+      } finally {
+        btn.disabled = false;
+      }
+    }
+  </script>
+</body>
+</html>
